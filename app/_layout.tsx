@@ -1,4 +1,3 @@
-import { Stack } from "expo-router";
 import React, { useEffect } from "react";
 import {
   adaptNavigationTheme,
@@ -16,6 +15,8 @@ import merge from "deepmerge";
 import { useTheme } from "@/hooks/useTheme";
 import * as SystemUI from "expo-system-ui";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { Slot, Stack, withLayoutContext } from "expo-router";
+import { createSharedElementStackNavigator } from "react-navigation-shared-element";
 
 const customDarkTheme = { ...MD3DarkTheme, colors: Colors.dark };
 const customLightTheme = { ...MD3LightTheme, colors: Colors.light };

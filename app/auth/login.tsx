@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   ToastAndroid,
@@ -8,6 +9,7 @@ import {
 import React, { useEffect, useState } from "react";
 import {
   Button,
+  HelperText,
   IconButton,
   Text,
   TextInput,
@@ -15,39 +17,68 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { supabase } from "@/lib/supabase";
-import * as Linking from "expo-linking";
-import createSessionFromUrl from "@/lib/createSessionFromUrl";
+import { getProfileUserById, supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as Network from "expo-network";
 
-const isDev = __DEV__;
-const emailRedirectTo = isDev
-  ? "exp://192.168.1.48:8081/--/auth/login"
-  : "cakapin://auth/login";
+const scheme = z.object({
+  email: z
+    .string()
+    .min(1, "Email wajib diisi!")
+    .email("Format email tidak valid!"),
+  password: z.string().min(8, "Password minimal 8 karakter!"),
+});
 
 export default function Login() {
   const { colors } = useTheme();
-  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const url = Linking.useURL();
-  const onSubmit = async () => {
+  const [isNetwork, setIsNetwork] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<z.infer<typeof scheme>>({
+    resolver: zodResolver(scheme),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit: SubmitHandler<z.infer<typeof scheme>> = async ({
+    email,
+    password,
+  }) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo,
-        },
+        password,
       });
       if (error) throw new Error(error.message);
-      ToastAndroid.show("Link telah di kirim", ToastAndroid.SHORT);
-      setEmail("");
+      await AsyncStorage.setItem(
+        "supabaseSession",
+        JSON.stringify(data.session)
+      );
+      const profile = await getProfileUserById(data.session.user.id);
+      await AsyncStorage.setItem("supabaseProfile", JSON.stringify(profile));
+      ToastAndroid.show("Selamat datang kembali!", ToastAndroid.SHORT);
       setIsLoading(false);
+      router.replace("/home");
     } catch (e: any) {
       setIsLoading(false);
       if (e.message) {
-        if (e.message === "Signups not allowed for otp") {
-          ToastAndroid.show("Akun tidak ditemukan", ToastAndroid.SHORT);
+        if (e.message === "Invalid login credentials") {
+          setError("email", {
+            message: "Email atau password salah!",
+          });
+          setError("password", {
+            message: "Email atau password salah!",
+          });
         } else {
           ToastAndroid.show(e.message, ToastAndroid.SHORT);
         }
@@ -58,11 +89,34 @@ export default function Login() {
     }
   };
   useEffect(() => {
-    if (url) {
-      createSessionFromUrl(url);
-      router.replace("/home");
-    }
-  }, [url]);
+    (async () => {
+      const network = await Network.getNetworkStateAsync();
+      if (network.isConnected) {
+        setIsNetwork(true);
+        return;
+      }
+      ToastAndroid.show(
+        "Kamu tidak memiliki akses ke internet!",
+        ToastAndroid.SHORT
+      );
+      setIsNetwork(false);
+      router.back();
+    })();
+  }, []);
+  if (!isNetwork) {
+    return (
+      <SafeAreaView
+        style={{
+          backgroundColor: colors.background,
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator color={colors.primary} size={100} />
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView
       style={{
@@ -119,16 +173,61 @@ export default function Login() {
               marginBottom: 50,
             }}
           ></View>
-          <TextInput
-            mode="outlined"
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
+          <View
             style={{
               alignSelf: "stretch",
-              marginBottom: 20,
             }}
-          />
+          >
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value, ref } }) => (
+                <>
+                  <TextInput
+                    mode="outlined"
+                    label="Email"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    ref={ref}
+                    error={!!errors.email}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                  <HelperText type="error" visible={!!errors.email}>
+                    {errors.email?.message}
+                  </HelperText>
+                </>
+              )}
+            />
+          </View>
+          <View
+            style={{
+              alignSelf: "stretch",
+            }}
+          >
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onBlur, onChange, value, ref } }) => (
+                <>
+                  <TextInput
+                    mode="outlined"
+                    label="Password"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    ref={ref}
+                    error={!!errors.password}
+                    secureTextEntry
+                  />
+                  <HelperText type="error" visible={!!errors.password}>
+                    {errors.password?.message}
+                  </HelperText>
+                </>
+              )}
+            />
+          </View>
           <Button
             mode="contained"
             loading={isLoading}
@@ -136,7 +235,7 @@ export default function Login() {
             style={{
               width: "100%",
             }}
-            onPress={onSubmit}
+            onPress={handleSubmit(onSubmit)}
           >
             Masuk
           </Button>

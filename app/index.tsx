@@ -1,11 +1,14 @@
 import React, { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { getUser } from "@/lib/supabase";
-import { ToastAndroid } from "react-native";
+import { ActivityIndicator, ToastAndroid } from "react-native";
 import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "react-native-paper";
 
 SplashScreen.preventAutoHideAsync();
 export default function index() {
+  const { colors } = useTheme();
   useEffect(() => {
     (async () => {
       try {
@@ -23,5 +26,15 @@ export default function index() {
       }
     })();
   }, []);
-  return <></>;
+  return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <ActivityIndicator size={100} color={colors.primary} />
+    </SafeAreaView>
+  );
 }

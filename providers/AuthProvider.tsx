@@ -1,6 +1,7 @@
-import { getProfileUserById, getUser, supabase } from "@/lib/supabase";
+import { getProfileUser, getUser, supabase } from "@/lib/supabase";
 import { ProfilesDB } from "@/types/profiles";
 import { User } from "@supabase/supabase-js";
+import { router } from "expo-router";
 import {
   createContext,
   FC,
@@ -32,7 +33,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       const user = await getUser();
       if (!user) return;
       setUser(user);
-      const profile = await getProfileUserById(user.id);
+      const profile = await getProfileUser();
       setProfile(profile);
     })();
     const {
@@ -40,18 +41,25 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     } = supabase.auth.onAuthStateChange(async (e, session) => {
       if (e === "SIGNED_OUT") {
         setUser(null);
-        setProfile(null);
       }
       if (e === "SIGNED_IN") {
         setUser(session?.user!);
-        const profile = await getProfileUserById(session?.user.id!);
-        setProfile(profile);
       }
     });
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    (async () => {
+      if (user) {
+        const profile = await getProfileUser();
+        setProfile(profile);
+      } else {
+        setProfile(null);
+      }
+    })();
+  }, [user]);
   return (
     <AuthContext.Provider value={{ profile, user }}>
       {children}
