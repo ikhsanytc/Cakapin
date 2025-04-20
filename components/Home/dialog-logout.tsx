@@ -6,9 +6,14 @@ import { logout } from "@/lib/supabase";
 type DialogLogoutProps = {
   setIsVisible: Dispatch<SetStateAction<boolean>>;
   isVisible: boolean;
+  setLoading: Dispatch<SetStateAction<boolean>>;
 };
 
-const DialogLogout: FC<DialogLogoutProps> = ({ setIsVisible, isVisible }) => {
+const DialogLogout: FC<DialogLogoutProps> = ({
+  setIsVisible,
+  isVisible,
+  setLoading,
+}) => {
   const showDialog = () => setIsVisible(true);
   const hideDialog = () => setIsVisible(false);
   return (
@@ -21,6 +26,7 @@ const DialogLogout: FC<DialogLogoutProps> = ({ setIsVisible, isVisible }) => {
         <Button
           onPress={async () => {
             hideDialog();
+            setLoading(true);
             await logout();
           }}
         >

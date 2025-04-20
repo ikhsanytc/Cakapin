@@ -21,6 +21,7 @@ import {
   Divider,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useColorSchemeContext } from "../_layout";
 
 // Dummy data untuk percakapan
 const messages = [
@@ -46,6 +47,7 @@ const messages = [
 
 const ChatScreen = () => {
   const [message, setMessage] = useState("");
+  const { colorScheme } = useColorSchemeContext();
   const [messagesList, setMessagesList] = useState(messages); // Pesan yang sudah ada
   const flatListRef = useRef<FlatList>(null);
   const { colors } = useTheme();
@@ -84,7 +86,12 @@ const ChatScreen = () => {
         <Appbar.Content title="Siapa kek" />
       </Appbar.Header>
       <Divider />
-      <View style={styles.container}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+        }}
+      >
         {/* Daftar pesan */}
         <FlatList
           ref={flatListRef}
@@ -96,12 +103,34 @@ const ChatScreen = () => {
             <View
               style={
                 item.sender === "You"
-                  ? styles.sentMessage
-                  : styles.receivedMessage
+                  ? {
+                      alignSelf: "flex-end",
+                      backgroundColor: colors.primary,
+                      padding: 10,
+                      margin: 5,
+                      borderRadius: 10,
+                      maxWidth: "70%",
+                    }
+                  : {
+                      alignSelf: "flex-start",
+                      backgroundColor: colors.onBackground,
+                      padding: 10,
+                      margin: 5,
+                      borderRadius: 10,
+                      maxWidth: "70%",
+                    }
               }
             >
-              <Text>{item.content}</Text>
-              <Text style={styles.timestamp}>{item.timestamp}</Text>
+              <Text
+                style={{
+                  color: colorScheme === "dark" ? "black" : "white",
+                }}
+              >
+                {item.content}
+              </Text>
+              <Text style={{ fontSize: 12, color: "grey" }}>
+                {item.timestamp}
+              </Text>
             </View>
           )}
           keyExtractor={(item) => item.id}
@@ -110,9 +139,28 @@ const ChatScreen = () => {
 
         {/* Input dan tombol kirim */}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.inputContainer}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              padding: 10,
+              borderTopWidth: 1,
+              maxHeight: 150,
+              borderColor: "#ccc",
+              backgroundColor: colors.background,
+            }}
+          >
             <TextInput
-              style={styles.input}
+              style={{
+                flex: 1,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 20,
+                padding: 10,
+                marginRight: 10,
+                color: colorScheme === "dark" ? "white" : "black",
+              }}
+              placeholderTextColor={colorScheme === "dark" ? "white" : "black"}
               placeholder="Type a message"
               value={message}
               onChangeText={setMessage}
@@ -133,47 +181,11 @@ const ChatScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  sentMessage: {
-    alignSelf: "flex-end",
-    backgroundColor: "#d1ffd1",
-    padding: 10,
-    margin: 5,
-    borderRadius: 10,
-    maxWidth: "70%",
-  },
-  receivedMessage: {
-    alignSelf: "flex-start",
-    backgroundColor: "#f1f1f1",
-    padding: 10,
-    margin: 5,
-    borderRadius: 10,
-    maxWidth: "70%",
-  },
-  timestamp: {
-    fontSize: 12,
-    color: "#888",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    borderTopWidth: 1,
-    maxHeight: 150,
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 20,
-    padding: 10,
-    marginRight: 10,
-  },
+  sentMessage: {},
+  receivedMessage: {},
+  timestamp: {},
+  inputContainer: {},
+  input: {},
 });
 
 export default ChatScreen;
